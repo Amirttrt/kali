@@ -1,0 +1,472 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گجت امنیتی</title>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Vazirmatn', sans-serif;
+        }
+
+        body {
+            background: #121212;
+            color: #e0e0e0;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* فقط برای عناصر خاص (مثل لوگو و فوتر) انتخاب متن غیرفعال می‌شه */
+        .logo, footer {
+            user-select: none;
+        }
+
+        /* بقیه محتوا قابل انتخابه */
+        .hero, .products, .about, .contact {
+            user-select: text;
+        }
+
+        /* انیمیشن نقاط متصل */
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1c2526, #2a3b3c);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #00e676;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav ul li {
+            margin-left: 30px;
+        }
+
+        nav ul li a {
+            color: #e0e0e0;
+            text-decoration: none;
+            font-size: 1.1rem;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+
+        nav ul li a:hover {
+            color: #00e676;
+            transform: translateY(-2px);
+        }
+
+        .hero {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content {
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #00e676;
+        }
+
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background: #00e676;
+            color: #121212;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            z-index: 2; /* اطمینان از عدم تداخل دکمه‌ها */
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 230, 118, 0.4);
+        }
+
+        .products {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 0 20px;
+            text-align: center;
+            z-index: 1;
+            position: relative;
+        }
+
+        .products h2 {
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            color: #00e676;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .product-card {
+            background: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 1s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0, 230, 118, 0.2);
+        }
+
+        .product-card img {
+            width: 100%;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .product-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .product-card .btn {
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        .about, .contact {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 0 20px;
+            text-align: center;
+            z-index: 1;
+            position: relative;
+        }
+
+        .about h2, .contact h2 {
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            color: #00e676;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .contact form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .contact input, .contact textarea {
+            background: #1e1e1e;
+            border: 1px solid #333;
+            padding: 10px;
+            border-radius: 5px;
+            color: #e0e0e0;
+            font-size: 1rem;
+        }
+
+        .contact button {
+            background: #00e676;
+            color: #121212;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .contact button:hover {
+            background: #00c853;
+        }
+
+        footer {
+            background: #1c2526;
+            padding: 20px;
+            text-align: center;
+            color: #e0e0e0;
+            z-index: 1;
+            position: relative;
+            margin-top: 50px; /* اطمینان از قرارگیری در انتها */
+        }
+
+        /* انیمیشن‌ها */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* ریسپانسیو */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .hero p { font-size: 1rem; }
+            nav ul { flex-direction: column; gap: 10px; }
+            nav ul li { margin-left: 0; }
+            .product-card { padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particle-canvas"></canvas>
+
+    <header>
+        <nav>
+            <div class="logo">گجت امنیتی</div>
+            <ul>
+                <li><a href="#products">محصولات</a></li>
+                <li><a href="#about">درباره ما</a></li>
+                <li><a href="#contact">تماس</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>امنیت را لمس کن</h1>
+            <p>با گجت‌های پیشرفته، آرامش و اطمینان را به خانه و محل کارتان بیاورید.</p>
+            <a href="#products" class="btn">مشاهده محصولات</a>
+        </div>
+    </section>
+
+    <section id="products" class="products">
+        <h2>محصولات ما</h2>
+        <div class="product-grid">
+            <div class="product-card">
+                <img src="https://i.postimg.cc/4dwS558R/IMG-4026.jpg" alt="RFLOCk">
+                <h3>محصول شماره ۱</h3>
+                <p>توضیح مختصر درباره محصول شماره ۱</p>
+                <a href="product1.html" class="btn">اطلاعات بیشتر</a>
+            </div>
+            <div class="product-card">
+                <img src="https://i.postimg.cc/RVrXryjV/IMG-4027.jpg" alt="محصول شماره ۲">
+                <h3>محصول شماره ۲</h3>
+                <p>توضیح مختصر درباره محصول شماره ۲</p>
+                <a href="product2.html" class="btn">اطلاعات بیشتر</a>
+            </div>
+            <div class="product-card">
+                <img src="https://i.postimg.cc/sf8D39c2/IMG-20250527-003229-744.jpg" alt="محصول شماره ۳">
+                <h3>محصول شماره ۳</h3>
+                <p>توضیح مختصر درباره محصول شماره ۳</p>
+                <a href="product3.html" class="btn">اطلاعات بیشتر</a>
+            </div>
+            <div class="product-card">
+                <img src="https://i.postimg.cc/zfgXbLGr/IMG-20250527-004038-766.jpg" alt="محصول شماره ۴">
+                <h3>محصول شماره ۴</h3>
+                <p>توضیح مختصر درباره محصول شماره ۴</p>
+                <a href="product4.html" class="btn">اطلاعات بیشتر</a>
+            </div>
+            <div class="product-card">
+                <img src="https://source.unsplash.com/random/300x200/?electronics" alt="محصول شماره ۵">
+                <h3>محصول شماره ۵</h3>
+                <p>توضیح مختصر درباره محصول شماره ۵</p>
+                <a href="product5.html" class="btn">اطلاعات بیشتر</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="about">
+        <h2>درباره ما</h2>
+        <p>ما تیمی هستیم متخصص در حوزه امنیت دیجیتال و فیزیکی که با ارائه گجت‌های مدرن، تلاش می‌کنیم آرامش و امنیت را برای خانه‌ها و محل‌های کار فراهم کنیم.</p>
+    </section>
+
+    <section id="contact" class="contact">
+        <h2>تماس با ما</h2>
+        <p>برای هرگونه سوال، همکاری یا سفارش عمده می‌توانید از طریق ایمیل یا شبکه‌های اجتماعی با ما در ارتباط باشید.</p>
+        <p>ایمیل: <a href="mailto:info@securitygadget.com">info@securitygadget.com</a></p>
+        <form>
+            <input type="text" placeholder="نام" required>
+            <input type="email" placeholder="ایمیل" required>
+            <textarea placeholder="پیام شما" rows="5" required></textarea>
+            <button type="submit">ارسال</button>
+        </form>
+    </section>
+
+    <footer>
+        <p>© 2025 - طراحی شده با ❤️ برای حفاظت از شما</p>
+    </footer>
+
+    <script>
+        // انیمیشن نقاط متصل
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particles = [];
+        const numParticles = 50;
+        const maxDistance = 100;
+        const mouse = { x: null, y: null, radius: 100 };
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 5 + 2;
+                this.speedX = Math.random() * 2 - 1;
+                this.speedY = Math.random() * 2 - 1;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+
+                const dx = mouse.x - this.x;
+                const dy = mouse.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < mouse.radius) {
+                    const force = (mouse.radius - distance) / mouse.radius;
+                    this.x -= (dx / distance) * force * 5;
+                    this.y -= (dy / distance) * force * 5;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = '#00e676';
+                ctx.fill();
+            }
+        }
+
+        function init() {
+            for (let i = 0; i < numParticles; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function connect() {
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a + 1; b < particles.length; b++) {
+                    const dx = particles[a].x - particles[b].x;
+                    const dy = particles[a].y - particles[b].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < maxDistance) {
+                        ctx.strokeStyle = `rgba(0, 230, 118, ${1 - distance / maxDistance})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+            }
+            connect();
+            requestAnimationFrame(animate);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
